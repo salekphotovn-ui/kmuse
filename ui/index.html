@@ -144,6 +144,18 @@
           </div>
           <div class="panel api-card">
             <div class="api-head">
+              <span class="setting-icon"><svg><use href="#i-database" /></svg></span>
+              <div><strong>Dọn dẹp cho nhẹ máy</strong><small id="clean-info">Đang tính dung lượng…</small></div>
+            </div>
+            <div class="api-row api-copy-row">
+              <button class="button button-soft" id="clean-cache" type="button">Xóa cache trình duyệt</button>
+              <button class="button button-soft" id="clean-history" type="button">Xóa lịch sử tạo</button>
+              <button class="button button-danger" id="clean-all" type="button">Xóa lịch sử và cả file ảnh/video</button>
+            </div>
+            <small class="api-hint">Cache chỉ là dữ liệu tạm của Chrome, xóa không mất đăng nhập. Xóa lịch sử chỉ làm sạch danh sách trong app, file đã tạo vẫn nằm trong thư mục output. Việc đang chờ hoặc đang chạy không bị ảnh hưởng.</small>
+          </div>
+          <div class="panel api-card">
+            <div class="api-head">
               <span class="setting-icon"><svg><use href="#i-settings" /></svg></span>
               <div><strong>Cửa sổ Muse</strong><small>Tự mở cửa sổ của tài khoản khi có việc, rồi tự đóng khi rảnh. Đăng nhập lần đầu vẫn dùng nút “Đăng nhập / Mở Muse”.</small></div>
               <label class="switch api-switch"><input type="checkbox" id="run-auto-open" /><span></span></label>
@@ -195,6 +207,14 @@
         <p id="update-dialog-text"></p>
         <p class="update-notes" id="update-dialog-notes" hidden></p>
         <div class="dialog-actions"><button class="button button-soft" id="update-later" type="button">Để sau</button><button class="button button-primary" id="update-now" type="button">Cập nhật ngay</button></div>
+      </div>
+    </dialog>
+
+    <dialog class="account-dialog" id="confirm-dialog">
+      <div class="update-dialog-body">
+        <div class="dialog-heading"><div><span class="eyebrow">XÁC NHẬN</span><h2 id="confirm-title">Xác nhận</h2></div></div>
+        <p id="confirm-text"></p>
+        <div class="dialog-actions"><button class="button button-soft" id="confirm-cancel" type="button">Hủy</button><button class="button button-danger" id="confirm-ok" type="button">Xóa</button></div>
       </div>
     </dialog>
 

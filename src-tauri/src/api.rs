@@ -39,7 +39,7 @@ pub struct ApiState {
 }
 
 fn settings_file(app: &AppHandle) -> Option<std::path::PathBuf> {
-    let dir = app.path().app_data_dir().ok()?;
+    let dir = crate::data_dir(app).ok()?;
     fs::create_dir_all(&dir).ok()?;
     Some(dir.join("api.json"))
 }

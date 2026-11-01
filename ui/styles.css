@@ -348,3 +348,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .api-copy-row { flex-wrap: wrap; }
 .api-hint { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 .api-hint strong { color: var(--text); font-weight: 600; }
+.button-danger { border: 1px solid #7a3a3a; color: #ffb4b4; background: rgba(160,50,50,.16); }
+.button-danger:hover { background: rgba(160,50,50,.30); }
+.button:disabled { opacity: .55; cursor: default; }

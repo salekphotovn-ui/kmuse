@@ -8,7 +8,7 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 
 /// Spacing between job launches, so ten accounts don't hit Muse in the same second.
 const LAUNCH_GAP: Duration = Duration::from_secs(2);
@@ -61,7 +61,7 @@ fn now_ms() -> u64 {
 }
 
 fn queue_file(app: &AppHandle) -> Option<PathBuf> {
-    let dir = app.path().app_data_dir().ok()?;
+    let dir = crate::data_dir(app).ok()?;
     fs::create_dir_all(&dir).ok()?;
     Some(dir.join("queue.json"))
 }
@@ -432,4 +432,35 @@ pub fn busy_accounts(rt: &Arc<Mutex<Runtime>>) -> HashSet<String> {
 
 pub fn is_paused(rt: &Arc<Mutex<Runtime>>) -> bool {
     rt.lock().unwrap().paused
+}
+
+/// Number of finished (done or failed) jobs kept in the history.
+pub fn finished_count(rt: &Arc<Mutex<Runtime>>) -> usize {
+    rt.lock().unwrap().jobs.iter().filter(|j| j.status == "done" || j.status == "error").count()
+}
+
+/// Removes finished jobs and their thumbnails. Returns how many were removed and the (lower-cased) paths of files that
+/// waiting or running jobs still need, so callers deleting files can leave those alone.
+pub fn clear_finished(app: &AppHandle, rt: &Arc<Mutex<Runtime>>) -> (usize, HashSet<String>) {
+    let mut rt = rt.lock().unwrap();
+    let before = rt.jobs.len();
+    rt.jobs.retain(|j| j.status != "done" && j.status != "error");
+    let removed = before - rt.jobs.len();
+    let keep: HashSet<u64> = rt.jobs.iter().map(|j| j.id).collect();
+    let protected: HashSet<String> = rt.jobs.iter()
+        .flat_map(|j| j.file.iter().chain(j.reference.iter()))
+        .map(|p| p.replace('/', "\\").to_lowercase())
+        .collect();
+    persist(app, &rt);
+    drop(rt);
+    if let Ok(mut dir) = media_dir() {
+        dir.push(".thumbs");
+        if let Ok(entries) = fs::read_dir(&dir) {
+            for e in entries.flatten() {
+                let id = e.path().file_stem().and_then(|n| n.to_str()).and_then(|n| n.parse::<u64>().ok());
+                if id.map_or(true, |id| !keep.contains(&id)) { let _ = fs::remove_file(e.path()); }
+            }
+        }
+    }
+    (removed, protected)
 }

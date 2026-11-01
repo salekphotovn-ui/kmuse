@@ -4,6 +4,7 @@ use tauri::Manager;
 
 mod api;
 mod browser;
+mod cleanup;
 mod queue;
 mod updater;
 use tungstenite::{connect, Message};
@@ -42,8 +43,17 @@ pub(crate) fn account_port(app: &tauri::AppHandle, id: &str) -> Result<u16, Stri
     Ok(port)
 }
 
+/// Folder for everything the app stores per machine (accounts, browser profiles, queue, settings).
+/// `KMUSE_DATA_DIR` points it elsewhere, which lets tests run against throw-away data instead of the real thing.
+pub(crate) fn data_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    match std::env::var_os("KMUSE_DATA_DIR") {
+        Some(dir) if !dir.is_empty() => Ok(PathBuf::from(dir)),
+        _ => app.path().app_data_dir().map_err(|e| e.to_string()),
+    }
+}
+
 fn accounts_file(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let dir = data_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir.join("accounts.json"))
 }
@@ -220,7 +230,7 @@ fn usage_progress() -> (bool, usize, usize) { *USAGE_PROGRESS.lock().unwrap() }
 
 pub(crate) fn usage_state() -> (bool, usize, usize) { *USAGE_PROGRESS.lock().unwrap() }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn check_account(app: tauri::AppHandle, id: String) -> Result<Account, String> {
     let port = account_port(&app, &id)?;
     let mut accounts = load_accounts(&app)?;
@@ -513,7 +523,7 @@ pub fn run() {
             watch_accounts(app.handle().clone());
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![list_accounts, add_account, open_account, check_account, refresh_all_usage, usage_progress, remove_account, open_output_folder, open_media_file, save_reference, queue::enqueue_jobs, queue::list_jobs, queue::get_thumb, queue::cancel_job, queue::retry_job, queue::delete_job, queue::set_paused, browser::get_run_settings, browser::set_run_settings, api::get_api_settings, api::set_api_settings, api::get_api_guide, updater::get_app_version, updater::check_update, updater::install_update])
+        .invoke_handler(tauri::generate_handler![list_accounts, add_account, open_account, check_account, refresh_all_usage, usage_progress, remove_account, open_output_folder, open_media_file, save_reference, queue::enqueue_jobs, queue::list_jobs, queue::get_thumb, queue::cancel_job, queue::retry_job, queue::delete_job, queue::set_paused, browser::get_run_settings, browser::set_run_settings, api::get_api_settings, api::set_api_settings, api::get_api_guide, updater::get_app_version, cleanup::get_storage_info, cleanup::clear_history, cleanup::clear_cache, updater::check_update, updater::install_update])
         .run(tauri::generate_context!())
         .expect("error while running Muse Tool");
 }

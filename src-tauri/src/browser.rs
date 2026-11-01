@@ -9,7 +9,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 /// Status of an account whose window is closed but whose login was good when it closed. It still accepts jobs; the window opens on demand.
 pub const READY_CLOSED: &str = "Sẵn sàng · cửa sổ đang tắt";
@@ -44,7 +44,7 @@ pub fn settings() -> RunSettings {
 }
 
 fn settings_file(app: &AppHandle) -> Option<PathBuf> {
-    let dir = app.path().app_data_dir().ok()?;
+    let dir = crate::data_dir(app).ok()?;
     fs::create_dir_all(&dir).ok()?;
     Some(dir.join("run.json"))
 }
@@ -83,7 +83,7 @@ fn browser_path() -> Result<PathBuf, String> {
 
 pub fn launch(app: &AppHandle, id: &str, port: u16, mode: Mode) -> Result<(), String> {
     let browser = browser_path()?;
-    let mut profile = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let mut profile = crate::data_dir(app)?;
     profile.push("profiles");
     profile.push(id);
     // Chromium browsers must not share a data directory, even for the same account.

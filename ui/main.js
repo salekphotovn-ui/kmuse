@@ -709,3 +709,89 @@ if (tauriInvoke) {
     if (updateAuto.checked) window.setTimeout(() => checkForUpdate({ quiet: true }), 4000);
   }).catch(() => {});
 }
+
+// ---- clean-up: browser cache and generation history ----
+const cleanInfo = document.querySelector("#clean-info");
+const confirmDialog = document.querySelector("#confirm-dialog");
+const cleanButtons = ["#clean-cache", "#clean-history", "#clean-all"].map((id) => document.querySelector(id));
+
+function formatBytes(bytes) {
+  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
+  if (bytes >= 1048576) return `${Math.round(bytes / 1048576)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function askConfirm(title, text, okLabel) {
+  return new Promise((resolve) => {
+    document.querySelector("#confirm-title").textContent = title;
+    document.querySelector("#confirm-text").textContent = text;
+    const ok = document.querySelector("#confirm-ok");
+    const cancel = document.querySelector("#confirm-cancel");
+    ok.textContent = okLabel;
+    const finish = (answer) => {
+      ok.removeEventListener("click", onOk);
+      cancel.removeEventListener("click", onCancel);
+      confirmDialog.removeEventListener("close", onClose);
+      if (confirmDialog.open) confirmDialog.close();
+      resolve(answer);
+    };
+    const onOk = () => finish(true);
+    const onCancel = () => finish(false);
+    const onClose = () => finish(false);
+    ok.addEventListener("click", onOk);
+    cancel.addEventListener("click", onCancel);
+    confirmDialog.addEventListener("close", onClose);
+    confirmDialog.showModal();
+  });
+}
+
+async function loadStorageInfo() {
+  if (!tauriInvoke) { cleanInfo.textContent = "Chỉ khả dụng trong ứng dụng KMUSE trên Windows."; return null; }
+  try {
+    const info = await tauriInvoke("get_storage_info");
+    cleanInfo.textContent = `Lịch sử: ${info.finished_jobs} việc · File đã tạo: ${info.result_files} (${formatBytes(info.result_bytes)}) · Cache trình duyệt: ${formatBytes(info.cache_bytes)}`
+      + (info.cache_busy ? ` · ${info.cache_busy} cửa sổ đang mở` : "");
+    return info;
+  } catch (error) {
+    cleanInfo.textContent = String(error);
+    return null;
+  }
+}
+
+async function runClean(command, args, title, text, okLabel, done) {
+  if (!(await askConfirm(title, text, okLabel))) return;
+  cleanButtons.forEach((b) => { b.disabled = true; });
+  try {
+    done(await tauriInvoke(command, args));
+  } catch (error) {
+    showToast(String(error));
+  } finally {
+    cleanButtons.forEach((b) => { b.disabled = false; });
+    lastAccountsSnapshot = "";
+    await loadStorageInfo();
+  }
+}
+
+document.querySelector("#clean-cache").addEventListener("click", () => runClean(
+  "clear_cache", {}, "Xóa cache trình duyệt?",
+  "Xóa dữ liệu tạm của Chrome trong các hồ sơ tài khoản. Không mất đăng nhập. Hồ sơ nào đang mở cửa sổ sẽ được bỏ qua; lần mở sau Chrome có thể tải chậm hơn một chút.",
+  "Xóa cache",
+  (r) => showToast(`Đã giải phóng ${formatBytes(r.bytes_freed)} cache${r.skipped ? ` (bỏ qua ${r.skipped} tài khoản đang mở)` : ""}.`),
+));
+
+document.querySelector("#clean-history").addEventListener("click", () => runClean(
+  "clear_history", { deleteFiles: false }, "Xóa lịch sử tạo?",
+  "Danh sách các việc đã xong hoặc lỗi và ảnh thu nhỏ sẽ bị xóa. File ảnh/video vẫn giữ nguyên trong thư mục output. Việc đang chờ hoặc đang chạy không bị ảnh hưởng.",
+  "Xóa lịch sử",
+  (r) => showToast(`Đã xóa ${r.jobs_removed} mục lịch sử.`),
+));
+
+document.querySelector("#clean-all").addEventListener("click", () => runClean(
+  "clear_history", { deleteFiles: true }, "Xóa cả file ảnh và video?",
+  "Toàn bộ lịch sử VÀ các file ảnh/video đã tạo trong thư mục output sẽ bị xóa vĩnh viễn, không khôi phục được. Hãy sao lưu những file cần giữ trước. File do bạn tự bỏ vào output và file của việc đang chờ hoặc đang chạy sẽ được giữ lại.",
+  "Xóa vĩnh viễn",
+  (r) => showToast(`Đã xóa ${r.jobs_removed} mục lịch sử và ${r.files_removed} file (${formatBytes(r.bytes_freed)}).`),
+));
+
+document.querySelector('[data-tab="settings"]').addEventListener("click", () => { loadStorageInfo(); });
+loadStorageInfo();
