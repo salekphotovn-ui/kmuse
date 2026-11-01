@@ -596,6 +596,50 @@ const updateAuto = document.querySelector("#update-auto");
 let appVersion = "";
 try { updateAuto.checked = window.localStorage.getItem("autoUpdate") !== "off"; } catch { /* storage unavailable */ }
 
+const updateDialog = document.querySelector("#update-dialog");
+const updateDialogText = document.querySelector("#update-dialog-text");
+const updateDialogNotes = document.querySelector("#update-dialog-notes");
+const updateNow = document.querySelector("#update-now");
+const updateLater = document.querySelector("#update-later");
+let pendingUpdate = null;
+let installing = false;
+
+function openUpdateDialog(found) {
+  pendingUpdate = found;
+  document.querySelector("#update-dialog-title").textContent = `Có phiên bản mới ${found.version}`;
+  updateDialogText.textContent = `Bạn đang dùng phiên bản ${appVersion}. Bấm “Cập nhật ngay” để tự tải, cài đặt và mở lại KMUSE.`;
+  const notes = (found.notes || "").trim();
+  updateDialogNotes.hidden = !notes;
+  updateDialogNotes.textContent = notes;
+  updateNow.disabled = false;
+  updateLater.disabled = false;
+  if (!updateDialog.open) updateDialog.showModal();
+}
+
+async function installPendingUpdate() {
+  if (installing || !pendingUpdate) return;
+  installing = true;
+  updateNow.disabled = true;
+  updateLater.disabled = true;
+  updateDialogText.textContent = "Đang tải và cài bản mới… KMUSE sẽ tự đóng và mở lại sau vài giây. Vui lòng không tắt máy.";
+  updateState.textContent = "Đang cập nhật…";
+  try {
+    await tauriInvoke("install_update");
+  } catch (error) {
+    // Nothing was installed (for example jobs are running): let the user read why and try again later.
+    installing = false;
+    updateDialogText.textContent = String(error);
+    updateState.textContent = String(error);
+    updateNow.disabled = false;
+    updateLater.disabled = false;
+  }
+}
+
+updateNow.addEventListener("click", installPendingUpdate);
+updateLater.addEventListener("click", () => updateDialog.close());
+// Escape must not dismiss the dialog halfway through an install.
+updateDialog.addEventListener("cancel", (event) => { if (installing) event.preventDefault(); });
+
 async function checkForUpdate({ quiet }) {
   if (!tauriInvoke) { updateState.textContent = "Chỉ khả dụng trong ứng dụng KMUSE trên Windows."; return; }
   updateCheck.disabled = true;
@@ -604,9 +648,10 @@ async function checkForUpdate({ quiet }) {
     const found = await tauriInvoke("check_update");
     updateInstall.hidden = !found;
     if (found) {
-      const firstNote = (found.notes || "").split(/\r?\n/)[0];
-      updateState.textContent = `Phiên bản ${appVersion} · có bản mới ${found.version}${firstNote ? ` — ${firstNote}` : ""}`;
-      if (quiet) showToast(`Có bản cập nhật mới ${found.version}. Vào Cài đặt để cập nhật.`);
+      pendingUpdate = found;
+      updateState.textContent = `Phiên bản ${appVersion} · có bản mới ${found.version}`;
+      // At startup the question is asked right away; from Settings the button below asks it.
+      if (quiet) openUpdateDialog(found);
     } else {
       updateState.textContent = `Phiên bản ${appVersion} · đang dùng bản mới nhất`;
       if (!quiet) showToast("Đang dùng bản mới nhất.");
@@ -621,17 +666,7 @@ async function checkForUpdate({ quiet }) {
 
 updateCheck.addEventListener("click", () => checkForUpdate({ quiet: false }));
 updateAuto.addEventListener("change", () => { try { window.localStorage.setItem("autoUpdate", updateAuto.checked ? "on" : "off"); } catch { /* storage unavailable */ } });
-updateInstall.addEventListener("click", async () => {
-  updateInstall.disabled = true;
-  updateState.textContent = "Đang tải và cài bản mới… ứng dụng sẽ tự khởi động lại.";
-  try {
-    await tauriInvoke("install_update");
-  } catch (error) {
-    updateState.textContent = String(error);
-    showToast(String(error));
-    updateInstall.disabled = false;
-  }
-});
+updateInstall.addEventListener("click", () => { if (pendingUpdate) openUpdateDialog(pendingUpdate); });
 
 if (tauriInvoke) {
   tauriInvoke("get_app_version").then((version) => {

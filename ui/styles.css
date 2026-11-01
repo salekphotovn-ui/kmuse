@@ -339,3 +339,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .api-state.is-good { color: var(--green); }
 .api-state.is-bad { color: #ff7180; }
 .api-example { margin: 0; padding: 12px 14px; overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; color: #c9d3e6; background: #0b1018; font: 12px/1.6 Consolas, monospace; white-space: pre; }
+.update-dialog-body { padding: 24px; }
+.update-notes { margin-top: -8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); background: #0d121a; font-size: 13px; white-space: pre-line; }
+.update-notes[hidden] { display: none; }
