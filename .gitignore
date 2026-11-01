@@ -1,0 +1,28 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/target-*/
+src-tauri/gen/
+.muse-profile/
+cookies*.json
+*.cookie.json
+npm-debug.log*
+
+# Dữ liệu cá nhân và kết quả tạo ra: không đưa lên git
+output/
+accounts.migration.json
+startup-error.log
+*.log
+
+# File build và ảnh chụp màn hình
+KMUSE.exe
+release/
+/ui-*.png
+tools/*.png
+
+# Khóa ký bản cập nhật tuyệt đối không commit
+*.key
+.tauri/
+
+# Ảnh chụp màn hình khi thử nghiệm
+test/*.png

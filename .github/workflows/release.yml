@@ -1,0 +1,36 @@
+name: Release
+
+# Đẩy tag dạng v1.2.3 để build bộ cài Windows và đăng lên GitHub Releases.
+# Các máy đã cài sẽ tự thấy bản mới qua latest.json do bước này tạo ra.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Muse Tool ${{ github.ref_name }}"
+          releaseBody: "Bản cài đặt Windows. Máy đã cài sẽ tự cập nhật từ Cài đặt → Cập nhật ứng dụng."
+          releaseDraft: false
+          prerelease: false

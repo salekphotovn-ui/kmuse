@@ -1,0 +1,11 @@
+const tabs = await (await fetch("http://127.0.0.1:19259/json")).json();
+const tab = tabs.find(t => t.url.includes("muse.ai"));
+const ws = new WebSocket(tab.webSocketDebuggerUrl);
+await new Promise(r => ws.onopen = r);
+let n = 0; const pend = {};
+ws.onmessage = e => { const m = JSON.parse(e.data); pend[m.id]?.(m); };
+const ev = (expression) => new Promise(res => { const id = ++n; pend[id] = res; ws.send(JSON.stringify({id, method:"Runtime.evaluate", params:{expression, returnByValue:true, awaitPromise:true}})); setTimeout(()=>res("TIMEOUT"),8000); });
+console.log(JSON.stringify(await ev(`(() => { const b=document.querySelector('[data-testid=hatch-dock-more]'); if(b){b.click(); return true} return false })()`)));
+await new Promise(r=>setTimeout(r,500));
+console.log(JSON.stringify(await ev(`[...document.querySelectorAll('button,[role=menuitem],[role=button],a')].map(e=>(e.innerText||'').trim()).filter(Boolean).slice(0,30)`)));
+ws.close();

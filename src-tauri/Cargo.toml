@@ -1,0 +1,24 @@
+[package]
+name = "muse-tool"
+version = "1.0.0"
+description = "Lightweight desktop interface for managing Muse AI workflows"
+authors = ["Muse Tool"]
+edition = "2021"
+
+[lib]
+name = "muse_tool_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+tungstenite = "0.26"
+base64 = "0.22"
+tiny_http = "0.12"

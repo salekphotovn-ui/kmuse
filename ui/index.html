@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080b11" />
+    <title>Muse Tool</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.2 3.1a4.7 4.7 0 0 1-2.7 2.7L5 10l3.1 1.2a4.7 4.7 0 0 1 2.7 2.7L12 17l1.2-3.1a4.7 4.7 0 0 1 2.7-2.7L19 10l-3.1-1.2a4.7 4.7 0 0 1-2.7-2.7L12 3Z"/><path d="m19 16-.6 1.4a2.5 2.5 0 0 1-1 1L16 19l1.4.6a2.5 2.5 0 0 1 1 1L19 22l.6-1.4a2.5 2.5 0 0 1 1-1L22 19l-1.4-.6a2.5 2.5 0 0 1-1-1L19 16Z"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/><path d="M18 4v6M15 7h6"/></symbol>
+      <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/><path d="m7 3 2 3M13 3l-2 3"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M20 15v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4Z"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 9A7 7 0 0 1 18 6l2 2M18 15a7 7 0 0 1-12 3l-2-2"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+      <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14"/><path d="M10 11v6M14 11v6"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    </svg>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-logo"><svg><use href="#i-sparkles" /></svg></span>
+          <div><strong>Muse Tool</strong><small>AI Content Studio</small></div>
+        </div>
+
+        <nav class="main-nav" aria-label="Chức năng chính">
+          <button class="nav-item is-active" type="button" data-tab="create-image" aria-selected="true"><svg><use href="#i-image" /></svg><span>Tạo ảnh</span></button>
+          <button class="nav-item" type="button" data-tab="create-video" aria-selected="false"><svg><use href="#i-video" /></svg><span>Tạo video</span></button>
+          <button class="nav-item" type="button" data-tab="accounts" aria-selected="false"><svg><use href="#i-users" /></svg><span>Tài khoản</span></button>
+          <button class="nav-item" type="button" data-tab="settings" aria-selected="false"><svg><use href="#i-settings" /></svg><span>Cài đặt</span></button>
+        </nav>
+
+        <div class="app-meta">
+          <span class="connection"><span></span>Đã kết nối</span>
+          <span class="version" id="app-version">v…</span>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <section class="page image-page is-active" data-page="create-image">
+          <div class="page-heading">
+            <div><span class="eyebrow">TẠO HÌNH ẢNH</span><h1>Tạo ảnh đa luồng</h1><p>Thêm yêu cầu vào hàng đợi và tự động phân phối cho tài khoản đang rảnh.</p></div>
+            <div class="queue-summary" aria-label="Tổng quan hàng đợi"><span><b id="summary-running">0</b> đang tạo</span><span><b id="summary-waiting">0</b> chờ</span><span><b id="summary-done">0</b> hoàn thành</span><span class="is-error"><b id="summary-error">0</b> lỗi</span></div>
+          </div>
+          <div class="workspace-grid queue-workspace">
+            <form class="panel form-panel queue-form-panel" id="image-form">
+              <div class="form-section-heading"><div><strong>Yêu cầu mới</strong><small>Tạo công việc và đưa vào hàng đợi</small></div><span>Tự động</span></div>
+              <label class="field"><span>Phân luồng tài khoản</span><select name="account"><option value="auto">Tự động chọn tài khoản đang rảnh</option><option value="Muse chính">Muse chính</option><option value="Muse phụ 01">Muse phụ 01</option></select></label>
+              <label class="field"><span>Mô tả hình ảnh</span><textarea name="prompt" rows="5" placeholder="Nhập mỗi prompt trên một đoạn riêng; cách nhau bằng một dòng trống..."></textarea><small class="prompt-hint">Mỗi prompt cách nhau bằng một dòng trống.</small></label>
+              <button class="upload-box" type="button" data-file-trigger="image-reference"><svg><use href="#i-upload" /></svg><span><strong>Thêm ảnh tham chiếu</strong><small data-file-label>PNG, JPG hoặc WEBP · Không bắt buộc</small></span><b>Chọn ảnh</b></button>
+              <input id="image-reference" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" />
+              <div class="form-columns"><label class="field"><span>Tỷ lệ khung hình</span><select name="ratio"><option>1:1 · Vuông</option><option>16:9 · Ngang</option><option>9:16 · Dọc</option></select></label><label class="field"><span>Số lượng</span><select name="quantity"><option value="1">1 ảnh</option><option value="2">2 ảnh</option><option value="4">4 ảnh</option></select></label></div>
+              <button class="button button-primary button-full" type="submit"><svg><use href="#i-plus" /></svg>Thêm vào hàng đợi</button>
+            </form>
+            <section class="panel image-queue-panel" aria-labelledby="image-queue-title">
+              <div class="queue-heading"><div><strong id="image-queue-title">Hàng đợi tạo ảnh</strong><small id="queue-visible-count">Hiển thị công việc gần nhất</small></div><button class="button button-soft queue-pause" id="toggle-queue" type="button">Tạm dừng nhận việc</button></div>
+              <div class="queue-filters" role="group" aria-label="Lọc trạng thái hàng đợi">
+                <button class="is-active" type="button" data-queue-filter="all">Tất cả <span id="filter-all-count">0</span></button>
+                <button type="button" data-queue-filter="running">Đang tạo <span id="filter-running-count">0</span></button>
+                <button type="button" data-queue-filter="waiting">Chờ <span id="filter-waiting-count">0</span></button>
+                <button type="button" data-queue-filter="done">Hoàn thành <span id="filter-done-count">0</span></button>
+                <button type="button" data-queue-filter="error">Lỗi <span id="filter-error-count">0</span></button>
+              </div>
+              <div class="image-queue-list" id="image-queue-list" aria-live="polite"></div>
+              <div class="queue-footer"><span>Cập nhật mỗi 3 giây</span><div><button id="queue-prev" type="button" aria-label="Trang trước">←</button><b id="queue-page-label">1 / 1</b><button id="queue-next" type="button" aria-label="Trang sau">→</button></div></div>
+            </section>
+          </div>
+          <section class="panel image-results-panel" aria-labelledby="image-results-title">
+            <div class="results-heading">
+              <div><strong id="image-results-title">Ảnh đã tạo</strong><small id="results-count">Ảnh mới nhất hiển thị trước</small></div>
+              <div><button class="button button-soft result-toolbar-button" id="open-results-folder" type="button"><svg><use href="#i-folder" /></svg>Mở thư mục</button><button class="button button-soft result-toolbar-button" id="download-selected-results" type="button"><svg><use href="#i-download" /></svg>Tải đã chọn</button></div>
+            </div>
+            <div class="image-results-grid" id="image-results-grid" aria-live="polite"></div>
+          </section>
+        </section>
+
+        <section class="page video-page" data-page="create-video" hidden>
+          <div class="page-heading"><div><span class="eyebrow">TẠO VIDEO</span><h1>Tạo chuyển động từ ý tưởng</h1><p>Mô tả cảnh quay, chọn thông số và tạo video bằng Muse.</p></div><span class="ready"><svg><use href="#i-sparkles" /></svg>Sẵn sàng</span></div>
+          <div class="queue-summary video-summary" aria-label="Tổng quan hàng đợi video"><span><b id="video-summary-running">0</b> đang tạo</span><span><b id="video-summary-waiting">0</b> chờ</span><span><b id="video-summary-done">0</b> hoàn thành</span><span class="is-error"><b id="video-summary-error">0</b> lỗi</span></div>
+          <div class="workspace-grid queue-workspace video-workspace">
+            <form class="panel form-panel queue-form-panel" id="video-form">
+              <div class="form-section-heading"><div><strong>Yêu cầu mới</strong><small>Tạo video và đưa vào hàng đợi</small></div><span>Tự động</span></div>
+              <label class="field"><span>Phân luồng tài khoản</span><select name="account"><option value="auto">Tự động chọn tài khoản đang rảnh</option><option value="Muse chính">Muse chính</option><option value="Muse phụ 01">Muse phụ 01</option></select></label>
+              <label class="field"><span>Mô tả video</span><textarea name="prompt" rows="4" placeholder="Nhập mỗi prompt trên một đoạn riêng; cách nhau bằng một dòng trống..."></textarea><small class="prompt-hint">Mỗi prompt cách nhau bằng một dòng trống.</small></label>
+              <button class="upload-box" type="button" data-file-trigger="video-reference"><svg><use href="#i-upload" /></svg><span><strong>Thêm ảnh tham chiếu</strong><small data-file-label>PNG, JPG hoặc WEBP · Không bắt buộc</small></span><b>Chọn ảnh</b></button>
+              <input id="video-reference" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" />
+              <div class="form-columns"><label class="field"><span>Tỷ lệ khung hình</span><select name="ratio"><option>16:9 · Ngang</option><option>9:16 · Dọc</option><option>1:1 · Vuông</option></select></label><label class="field"><span>Số lượng</span><select name="quantity"><option value="1">1 video</option><option value="2">2 video</option><option value="4">4 video</option></select></label></div>
+              <button class="button button-primary button-full" type="submit"><svg><use href="#i-plus" /></svg>Thêm vào hàng đợi</button>
+            </form>
+            <section class="panel image-queue-panel" aria-labelledby="video-queue-title">
+              <div class="queue-heading"><div><strong id="video-queue-title">Hàng đợi tạo video</strong><small id="video-queue-visible-count">Hiển thị công việc gần nhất</small></div><button class="button button-soft queue-pause" id="toggle-video-queue" type="button">Tạm dừng nhận việc</button></div>
+              <div class="queue-filters" role="group" aria-label="Lọc trạng thái hàng đợi video">
+                <button class="is-active" type="button" data-video-filter="all">Tất cả <span id="video-filter-all-count">0</span></button>
+                <button type="button" data-video-filter="running">Đang tạo <span id="video-filter-running-count">0</span></button>
+                <button type="button" data-video-filter="waiting">Chờ <span id="video-filter-waiting-count">0</span></button>
+                <button type="button" data-video-filter="done">Hoàn thành <span id="video-filter-done-count">0</span></button>
+                <button type="button" data-video-filter="error">Lỗi <span id="video-filter-error-count">0</span></button>
+              </div>
+              <div class="image-queue-list" id="video-queue-list" aria-live="polite"></div>
+              <div class="queue-footer"><span>Cập nhật mỗi 3 giây</span><div><button id="video-queue-prev" type="button" aria-label="Trang trước">←</button><b id="video-queue-page-label">1 / 1</b><button id="video-queue-next" type="button" aria-label="Trang sau">→</button></div></div>
+            </section>
+          </div>
+          <section class="panel image-results-panel video-results-panel" aria-labelledby="video-results-title">
+            <div class="results-heading"><div><strong id="video-results-title">Video đã tạo</strong><small id="video-results-count">Video mới nhất hiển thị trước</small></div><div><button class="button button-soft result-toolbar-button" id="open-video-results-folder" type="button"><svg><use href="#i-folder" /></svg>Mở thư mục</button><button class="button button-soft result-toolbar-button" id="download-selected-videos" type="button"><svg><use href="#i-download" /></svg>Tải đã chọn</button></div></div>
+            <div class="image-results-grid" id="video-results-grid" aria-live="polite"></div>
+          </section>
+        </section>
+
+        <section class="page" data-page="accounts" hidden>
+          <div class="page-heading"><div><span class="eyebrow">QUẢN LÝ</span><h1>Tài khoản Muse</h1><p>Theo dõi trạng thái và mở nhanh từng phiên làm việc.</p></div><div class="heading-actions"><button class="button button-soft" id="refresh-usage" type="button">Làm mới token</button><button class="button button-primary" id="add-account" type="button"><svg><use href="#i-plus" /></svg>Thêm tài khoản</button></div></div>
+          <div class="usage-bar"><label for="warn-percent">Cảnh báo khi đã dùng từ <input id="warn-percent" type="number" min="50" max="100" step="1" value="95" />%</label><span class="usage-warning" id="usage-warning" hidden></span></div>
+          <div class="panel account-list" id="account-list" aria-live="polite"></div>
+        </section>
+
+        <section class="page" data-page="settings" hidden>
+          <div class="page-heading"><div><span class="eyebrow">HỆ THỐNG</span><h1>Cài đặt</h1><p>Quản lý cập nhật, bảo mật và dữ liệu của ứng dụng.</p></div></div>
+          <div class="panel api-card">
+            <div class="api-head">
+              <span class="setting-icon"><svg><use href="#i-refresh" /></svg></span>
+              <div><strong>Cập nhật ứng dụng</strong><small id="update-state">Đang kiểm tra phiên bản…</small></div>
+              <label class="switch api-switch" title="Tự kiểm tra khi mở app"><input type="checkbox" id="update-auto" checked /><span></span></label>
+            </div>
+            <div class="api-row">
+              <button class="button button-soft" id="update-check" type="button">Kiểm tra cập nhật</button>
+              <button class="button button-primary" id="update-install" type="button" hidden>Cập nhật ngay</button>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <div class="panel setting-card"><span class="setting-icon"><svg><use href="#i-lock" /></svg></span><div><strong>Khóa ứng dụng</strong><small>Yêu cầu mã PIN trước khi xem tài khoản</small></div><label class="switch"><input type="checkbox" /><span></span></label></div>
+            <div class="panel setting-card"><span class="setting-icon"><svg><use href="#i-settings" /></svg></span><div><strong>Giao diện</strong><small>Chế độ tối được dùng mặc định</small></div><span class="fixed-value">Tối</span></div>
+            <div class="panel setting-card"><span class="setting-icon"><svg><use href="#i-database" /></svg></span><div><strong>Dữ liệu cục bộ</strong><small>Cookie và profile sẽ được mã hóa trên máy</small></div><button class="button button-soft" id="open-data" type="button">Mở thư mục</button></div>
+          </div>
+          <div class="panel api-card">
+            <div class="api-head">
+              <span class="setting-icon"><svg><use href="#i-settings" /></svg></span>
+              <div><strong>Cửa sổ Muse</strong><small>Tự mở cửa sổ của tài khoản khi có việc, rồi tự đóng khi rảnh. Đăng nhập lần đầu vẫn dùng nút “Đăng nhập / Mở Muse”.</small></div>
+              <label class="switch api-switch"><input type="checkbox" id="run-auto-open" /><span></span></label>
+            </div>
+            <div class="api-head">
+              <span class="setting-icon"><svg><use href="#i-lock" /></svg></span>
+              <div><strong>Chạy ẩn hoàn toàn</strong><small>Cửa sổ tự mở không hiện trên màn hình. Muse có thể nhận ra trình duyệt ẩn, nên thử với một tài khoản trước.</small></div>
+              <label class="switch api-switch"><input type="checkbox" id="run-hidden" /><span></span></label>
+            </div>
+            <div class="api-row">
+              <label class="field"><span>Đóng khi rảnh sau (phút, 0 = không đóng)</span><input id="run-idle" type="number" min="0" max="1440" value="5" /></label>
+            </div>
+          </div>
+          <div class="panel api-card">
+            <div class="api-head">
+              <span class="setting-icon"><svg><use href="#i-database" /></svg></span>
+              <div><strong>API nội bộ cho AI</strong><small>Chỉ gọi được từ chính máy này (127.0.0.1), không mở ra mạng LAN và không cần khóa.</small></div>
+              <label class="switch api-switch"><input type="checkbox" id="api-enabled" /><span></span></label>
+            </div>
+            <div class="api-row">
+              <label class="field"><span>Cổng</span><input id="api-port" type="number" min="1024" max="65535" value="17890" /></label>
+              <button class="button button-soft" id="api-save" type="button">Lưu và áp dụng</button>
+              <span class="api-state" id="api-state">Đang kiểm tra…</span>
+            </div>
+            <pre class="api-example" id="api-example"></pre>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="account-dialog" id="account-dialog">
+      <form method="dialog" id="account-form">
+        <div class="dialog-heading"><div><span class="eyebrow">TÀI KHOẢN MỚI</span><h2>Thêm tài khoản Muse</h2></div><button class="icon-button" value="cancel" aria-label="Đóng"><svg><use href="#i-x" /></svg></button></div>
+        <p>Mỗi tài khoản mở trong hồ sơ trình duyệt riêng. Đăng nhập trực tiếp trên trang Muse; mật khẩu không đi qua KMUSE.</p>
+        <label class="field"><span>Tên hiển thị</span><input name="name" type="text" placeholder="Ví dụ: Muse phụ 03" required /></label>
+        <div class="dialog-actions"><button class="button button-soft" value="cancel">Hủy</button><button class="button button-primary" value="default">Thêm tài khoản</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="image-viewer-dialog" id="image-viewer-dialog">
+      <div class="image-viewer-preview" id="image-viewer-preview"></div>
+      <div class="image-viewer-info">
+        <div><span class="eyebrow">KẾT QUẢ HÌNH ẢNH</span><h2 id="image-viewer-title">Ảnh đã tạo</h2><p id="image-viewer-prompt"></p><small id="image-viewer-meta"></small></div>
+        <div class="image-viewer-actions"><button class="button button-soft" id="delete-viewed-result" type="button"><svg><use href="#i-trash" /></svg>Xóa</button><button class="button button-soft" id="open-viewed-folder" type="button"><svg><use href="#i-folder" /></svg>Mở thư mục</button><button class="button button-soft" id="use-as-reference" type="button"><svg><use href="#i-video" /></svg>Làm video từ ảnh này</button><button class="button button-primary" id="download-viewed-result" type="button"><svg><use href="#i-download" /></svg>Tải ảnh</button><button class="icon-button" id="close-image-viewer" type="button" aria-label="Đóng"><svg><use href="#i-x" /></svg></button></div>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
