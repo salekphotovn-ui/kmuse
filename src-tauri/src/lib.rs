@@ -513,7 +513,7 @@ pub fn run() {
             watch_accounts(app.handle().clone());
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![list_accounts, add_account, open_account, check_account, refresh_all_usage, usage_progress, remove_account, open_output_folder, open_media_file, save_reference, queue::enqueue_jobs, queue::list_jobs, queue::get_thumb, queue::cancel_job, queue::retry_job, queue::delete_job, queue::set_paused, browser::get_run_settings, browser::set_run_settings, api::get_api_settings, api::set_api_settings, updater::get_app_version, updater::check_update, updater::install_update])
+        .invoke_handler(tauri::generate_handler![list_accounts, add_account, open_account, check_account, refresh_all_usage, usage_progress, remove_account, open_output_folder, open_media_file, save_reference, queue::enqueue_jobs, queue::list_jobs, queue::get_thumb, queue::cancel_job, queue::retry_job, queue::delete_job, queue::set_paused, browser::get_run_settings, browser::set_run_settings, api::get_api_settings, api::set_api_settings, api::get_api_guide, updater::get_app_version, updater::check_update, updater::install_update])
         .run(tauri::generate_context!())
         .expect("error while running Muse Tool");
 }

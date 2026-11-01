@@ -1,4 +1,4 @@
-use crate::{check_reference, load_accounts, queue};
+use crate::{check_reference, load_accounts, media_dir, queue};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -102,6 +102,20 @@ pub fn set_api_settings(state: State<ApiState>, enabled: bool, port: u16) -> Res
 }
 
 type Reply = Response<std::io::Cursor<Vec<u8>>>;
+
+/// The usage guide for other AI agents, with this machine's address and output folder filled in.
+pub fn guide(port: u16) -> String {
+    let out = media_dir().map(|p| p.display().to_string().trim_start_matches(r"\\?\").to_string()).unwrap_or_else(|_| "output".into());
+    include_str!("api_guide.md")
+        .replace("__BASE__", &format!("http://127.0.0.1:{port}"))
+        .replace("__OUTJSON__", &out.replace('\\', "\\\\"))
+        .replace("__OUT__", &out)
+}
+
+#[tauri::command]
+pub fn get_api_guide(state: State<ApiState>) -> String {
+    guide(state.settings.lock().unwrap().port)
+}
 
 fn json(code: u16, value: serde_json::Value) -> Reply {
     let header = Header::from_bytes("Content-Type", "application/json; charset=utf-8").unwrap();
@@ -222,8 +236,13 @@ fn handle(app: &AppHandle, queue: &Rt, port: u16, mut request: Request) {
     let method = request.method().clone();
 
     let response = match (&method, segments.as_slice()) {
+        (Method::Get, ["docs"]) => {
+            let header = Header::from_bytes("Content-Type", "text/markdown; charset=utf-8").unwrap();
+            Response::from_string(guide(port)).with_header(header)
+        }
         (Method::Get, []) | (Method::Get, ["health"]) => json(200, serde_json::json!({
             "ok": true,
+            "docs": format!("http://127.0.0.1:{port}/docs"),
             "paused": queue::is_paused(queue),
             "endpoints": ["GET /accounts", "POST /jobs", "GET /jobs", "GET /jobs/{id}?wait=SECONDS", "GET /jobs/{id}/file", "DELETE /jobs/{id}"],
         })),

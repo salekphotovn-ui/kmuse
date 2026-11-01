@@ -345,3 +345,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 /* Cài đặt dài hơn cửa sổ: cho cuộn dọc thay vì cắt mất phần dưới */
 .page[data-page="settings"] { overflow-y: auto; padding-right: 6px; }
 .page[data-page="settings"] > * { flex-shrink: 0; }
+.api-copy-row { flex-wrap: wrap; }
+.api-hint { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.api-hint strong { color: var(--text); font-weight: 600; }

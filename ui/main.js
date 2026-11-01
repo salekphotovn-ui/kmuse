@@ -528,12 +528,16 @@ const apiEnabled = document.querySelector("#api-enabled");
 const apiPort = document.querySelector("#api-port");
 const apiState = document.querySelector("#api-state");
 
+let apiBase = "http://127.0.0.1:17890";
+
 function renderApi(status) {
   apiEnabled.checked = status.enabled;
   apiPort.value = status.port;
   apiState.textContent = status.error || (status.running ? `Đang chạy tại http://127.0.0.1:${status.port}` : "Đang tắt");
   apiState.className = `api-state ${status.error ? "is-bad" : status.running ? "is-good" : ""}`;
   const base = `http://127.0.0.1:${status.port}`;
+  apiBase = base;
+  document.querySelector("#api-docs-url").textContent = `${base}/docs`;
   document.querySelector("#api-example").textContent = [
     `# Gửi nhiều prompt khác nhau trong một lần`,
     `curl -X POST ${base}/jobs -H "Content-Type: application/json" -d "{\\"jobs\\":[{\\"kind\\":\\"image\\",\\"prompt\\":\\"a red apple\\"},{\\"kind\\":\\"video\\",\\"prompt\\":\\"a cat chasing a ball\\"}]}"`,
@@ -560,6 +564,35 @@ async function saveApi() {
     showToast(String(error));
   }
 }
+
+// Clipboard API needs a secure context; fall back to a hidden textarea so the buttons work either way.
+async function copyText(text, done) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.classList.add("visually-hidden");
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    area.remove();
+    if (!ok) { showToast("Không sao chép được. Hãy chọn và copy thủ công."); return; }
+  }
+  showToast(done);
+}
+
+document.querySelector("#api-copy-url").addEventListener("click", () => copyText(apiBase, "Đã sao chép địa chỉ API."));
+document.querySelector("#api-copy-example").addEventListener("click", () => copyText(document.querySelector("#api-example").textContent, "Đã sao chép ví dụ gọi API."));
+document.querySelector("#api-copy-guide").addEventListener("click", async () => {
+  if (!tauriInvoke) return;
+  try {
+    copyText(await tauriInvoke("get_api_guide"), "Đã sao chép hướng dẫn. Dán vào cuộc trò chuyện của AI khác.");
+  } catch (error) {
+    showToast(String(error));
+  }
+});
 
 document.querySelector("#api-save").addEventListener("click", saveApi);
 apiEnabled.addEventListener("change", saveApi);
