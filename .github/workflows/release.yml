@@ -23,6 +23,14 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
+      # Ghi chú hiện trong hộp thoại cập nhật: lấy từ dòng sau dấu ":" của commit do tools/release.mjs tạo.
+      - id: notes
+        shell: bash
+        run: |
+          subject=$(git log -1 --format=%s)
+          note="${subject#*: }"
+          [ "$note" = "$subject" ] && note="Cải tiến và sửa lỗi."
+          echo "body=$note" >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -31,6 +39,6 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Muse Tool ${{ github.ref_name }}"
-          releaseBody: "Bản cài đặt Windows. Máy đã cài sẽ tự cập nhật từ Cài đặt → Cập nhật ứng dụng."
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
