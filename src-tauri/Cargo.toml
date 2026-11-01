@@ -1,6 +1,6 @@
 [package]
 name = "muse-tool"
-version = "1.0.1"
+version = "1.0.2"
 description = "Lightweight desktop interface for managing Muse AI workflows"
 authors = ["Muse Tool"]
 edition = "2021"
