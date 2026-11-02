@@ -351,3 +351,5 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .button-danger { border: 1px solid #7a3a3a; color: #ffb4b4; background: rgba(160,50,50,.16); }
 .button-danger:hover { background: rgba(160,50,50,.30); }
 .button:disabled { opacity: .55; cursor: default; }
+/* Thuộc tính hidden phải thắng mọi display của nút/khối, nếu không phần tử ẩn vẫn hiện ra */
+[hidden] { display: none !important; }
