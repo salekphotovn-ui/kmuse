@@ -1,6 +1,6 @@
 {
   "name": "muse-cookie-session",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Local-only launcher for restoring your own muse.ai browser session from exported cookies.",
