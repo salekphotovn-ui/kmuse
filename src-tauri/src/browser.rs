@@ -73,12 +73,27 @@ pub fn set_run_settings(app: AppHandle, auto_open: bool, hidden: bool, idle_minu
 pub enum Mode { Visible, Minimized, Hidden }
 
 fn browser_path() -> Result<PathBuf, String> {
-    [
+    #[cfg(target_os = "windows")]
+    let candidates: Vec<PathBuf> = [
         r"C:\Program Files\Google\Chrome\Application\chrome.exe",
         r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
         r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-    ].iter().map(PathBuf::from).find(|p| p.exists()).ok_or_else(|| "Không tìm thấy Microsoft Edge hoặc Google Chrome.".to_string())
+    ].iter().map(PathBuf::from).collect();
+    #[cfg(target_os = "macos")]
+    let candidates: Vec<PathBuf> = {
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let mut list = Vec::new();
+        for name in ["Google Chrome", "Microsoft Edge"] {
+            let inner = format!("{name}.app/Contents/MacOS/{name}");
+            list.push(PathBuf::from("/Applications").join(&inner));
+            if let Some(home) = &home { list.push(home.join("Applications").join(&inner)); }
+        }
+        list
+    };
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let candidates: Vec<PathBuf> = ["/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/microsoft-edge"].iter().map(PathBuf::from).collect();
+    candidates.into_iter().find(|p| p.exists()).ok_or_else(|| "Không tìm thấy Google Chrome hoặc Microsoft Edge. Hãy cài một trong hai.".to_string())
 }
 
 pub fn launch(app: &AppHandle, id: &str, port: u16, mode: Mode) -> Result<(), String> {

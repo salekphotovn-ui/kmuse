@@ -1,7 +1,8 @@
 name: Release
 
-# Đẩy tag dạng v1.2.3 để build bộ cài Windows và đăng lên GitHub Releases.
-# Các máy đã cài sẽ tự thấy bản mới qua latest.json do bước này tạo ra.
+# Đẩy tag dạng v1.2.3 để build bộ cài cho Windows và macOS (chip Apple + Intel) và đăng lên GitHub Releases.
+# Mọi bản đều đăng vào CÙNG một release và cùng gộp vào latest.json, nên máy Windows và máy Mac
+# đều tự thấy bản mới từ một lần ra bản.
 on:
   push:
     tags: ["v*"]
@@ -10,8 +11,24 @@ permissions:
   contents: write
 
 jobs:
-  windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      fail-fast: false
+      # Chạy lần lượt để các lượt không ghi đè latest.json của nhau.
+      max-parallel: 1
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            args: "--bundles nsis"
+          - name: macOS chip Apple (M1/M2/M3/M4)
+            os: macos-latest
+            args: "--target aarch64-apple-darwin --bundles app,dmg"
+          - name: macOS chip Intel
+            os: macos-latest
+            args: "--target x86_64-apple-darwin --bundles app,dmg"
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,9 +36,12 @@ jobs:
           node-version: 22
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ startsWith(matrix.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: ${{ matrix.args }}
       - run: npm ci
       # Ghi chú hiện trong hộp thoại cập nhật: lấy từ dòng sau dấu ":" của commit do tools/release.mjs tạo.
       - id: notes
@@ -42,3 +62,4 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
+          args: ${{ matrix.args }}

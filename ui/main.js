@@ -232,7 +232,7 @@ for (const panel of Object.values(panels)) {
   referenceInput.addEventListener("change", async () => {
     const file = referenceInput.files?.[0];
     if (!file) return;
-    if (!tauriInvoke) return showToast("Hãy mở KMUSE trên Windows để dùng ảnh tham chiếu.");
+    if (!tauriInvoke) return showToast("Hãy mở KMUSE (bản cài đặt) để dùng ảnh tham chiếu.");
     try {
       panel.setReference(await tauriInvoke("save_reference", { name: file.name, data: await readBase64(file) }), file.name);
     } catch (error) {
@@ -250,7 +250,7 @@ for (const panel of Object.values(panels)) {
       form.elements.prompt.focus();
       return;
     }
-    if (!tauriInvoke) return showToast("Hãy mở KMUSE trên Windows để tạo thật.");
+    if (!tauriInvoke) return showToast("Hãy mở KMUSE (bản cài đặt) để tạo thật.");
     const quantity = Number(form.elements.quantity.value);
     const account = form.elements.account.value === "auto" ? null : form.elements.account.value;
     try {
@@ -408,7 +408,7 @@ let lastAccountsSnapshot = "";
 
 async function refreshAccounts() {
   if (!tauriInvoke) {
-    accountList.innerHTML = '<div class="account-empty">Quản lý tài khoản khả dụng trong ứng dụng KMUSE trên Windows.</div>';
+    accountList.innerHTML = '<div class="account-empty">Quản lý tài khoản khả dụng trong ứng dụng KMUSE (bản cài đặt).</div>';
     return [];
   }
   const accounts = await tauriInvoke("list_accounts");
@@ -438,7 +438,7 @@ accountForm.addEventListener("submit", (event) => {
 
   if (!tauriInvoke) {
     accountDialog.close();
-    showToast("Hãy mở KMUSE trên Windows để thêm tài khoản thật.");
+    showToast("Hãy mở KMUSE (bản cài đặt) để thêm tài khoản thật.");
     return;
   }
   tauriInvoke("add_account", { name }).then(async () => {
@@ -454,7 +454,7 @@ accountList.addEventListener("click", (event) => {
   const name = row.querySelector("strong").textContent;
   const id = row.dataset.accountId;
   if (event.target.closest(".open-account")) {
-    if (!tauriInvoke) return showToast("Mở tài khoản khả dụng trong KMUSE trên Windows.");
+    if (!tauriInvoke) return showToast("Mở tài khoản khả dụng trong KMUSE (bản cài đặt).");
     const button = event.target.closest(".open-account");
     button.disabled = true;
     tauriInvoke("open_account", { id }).then(async () => {
@@ -552,7 +552,7 @@ function renderApi(status) {
 }
 
 async function loadApi() {
-  if (!tauriInvoke) { apiState.textContent = "Chỉ khả dụng trong ứng dụng KMUSE trên Windows."; return; }
+  if (!tauriInvoke) { apiState.textContent = "Chỉ khả dụng trong ứng dụng KMUSE (bản cài đặt)."; return; }
   renderApi(await tauriInvoke("get_api_settings"));
 }
 
@@ -674,7 +674,7 @@ updateLater.addEventListener("click", () => updateDialog.close());
 updateDialog.addEventListener("cancel", (event) => { if (installing) event.preventDefault(); });
 
 async function checkForUpdate({ quiet }) {
-  if (!tauriInvoke) { updateState.textContent = "Chỉ khả dụng trong ứng dụng KMUSE trên Windows."; return; }
+  if (!tauriInvoke) { updateState.textContent = "Chỉ khả dụng trong ứng dụng KMUSE (bản cài đặt)."; return; }
   updateCheck.disabled = true;
   updateState.textContent = `Phiên bản ${appVersion} · đang kiểm tra…`;
   try {
@@ -746,7 +746,7 @@ function askConfirm(title, text, okLabel) {
 }
 
 async function loadStorageInfo() {
-  if (!tauriInvoke) { cleanInfo.textContent = "Chỉ khả dụng trong ứng dụng KMUSE trên Windows."; return null; }
+  if (!tauriInvoke) { cleanInfo.textContent = "Chỉ khả dụng trong ứng dụng KMUSE (bản cài đặt)."; return null; }
   try {
     const info = await tauriInvoke("get_storage_info");
     cleanInfo.textContent = `Lịch sử: ${info.finished_jobs} việc · File đã tạo: ${info.result_files} (${formatBytes(info.result_bytes)}) · Cache trình duyệt: ${formatBytes(info.cache_bytes)}`

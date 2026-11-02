@@ -282,6 +282,13 @@ pub(crate) fn media_dir() -> Result<PathBuf, String> {
     if let Some(pos) = dir.ancestors().position(|a| a.file_name().is_some_and(|n| n == "src-tauri")) {
         dir = dir.ancestors().nth(pos + 1).unwrap_or(&dir).to_path_buf();
     }
+    // On macOS the executable lives inside the .app bundle, which is replaced on every update and must not hold results; use a folder in the home directory.
+    #[cfg(target_os = "macos")]
+    {
+        if dir.ancestors().any(|a| a.extension().is_some_and(|e| e == "app")) {
+            if let Some(home) = std::env::var_os("HOME") { dir = PathBuf::from(home).join("Muse Tool"); }
+        }
+    }
     dir.push("output");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
@@ -438,13 +445,24 @@ pub(crate) fn run_media_job(port: u16, kind: &str, prompt: &str, ratio: &str, re
 fn open_media_file(path: String) -> Result<(), String> {
     let p = PathBuf::from(&path);
     if !p.starts_with(media_dir()?) { return Err("Đường dẫn không nằm trong thư mục kết quả.".into()); }
-    Command::new("explorer").arg(p).spawn().map(|_| ()).map_err(|e| e.to_string())
+    open_in_system(&p)
+}
+
+/// Opens a file or folder with the system's default handler (Explorer on Windows, Finder on macOS).
+fn open_in_system(path: &std::path::Path) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    let opener = "explorer";
+    #[cfg(target_os = "macos")]
+    let opener = "open";
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let opener = "xdg-open";
+    Command::new(opener).arg(path).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn open_output_folder() -> Result<(), String> {
     let dir = media_dir()?;
-    Command::new("explorer").arg(dir).spawn().map(|_| ()).map_err(|e| e.to_string())
+    open_in_system(&dir)
 }
 
 #[tauri::command]

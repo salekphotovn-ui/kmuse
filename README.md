@@ -54,6 +54,14 @@ Tải `Muse-Tool_x.y.z_x64-setup.exe` ở trang [Releases](https://github.com/sa
 
 Dữ liệu của từng máy (tài khoản, hồ sơ Chrome, hàng chờ, cài đặt) nằm ngoài mã nguồn và không bị ghi đè khi cập nhật. Ảnh và video tạo ra nằm trong thư mục `output` cạnh ứng dụng.
 
+## Cài đặt trên macOS
+
+Tải file `.dmg` ở trang Releases: `aarch64` cho Mac chip Apple (M1/M2/M3/M4), `x64` cho Mac chip Intel. Mở file, kéo Muse Tool vào Applications. Máy cần có Google Chrome hoặc Microsoft Edge.
+
+Ứng dụng chưa được Apple công chứng, nên lần đầu macOS sẽ báo "không thể mở". Cách mở: bấm chuột phải vào Muse Tool trong Applications, chọn **Open**, rồi **Open** lần nữa. Nếu vẫn bị chặn (macOS 15 trở lên): System Settings → Privacy & Security → kéo xuống bấm **Open Anyway**. Hoặc chạy trong Terminal: `xattr -cr "/Applications/Muse Tool.app"`. Chỉ cần làm một lần; các bản cập nhật sau tự cài.
+
+Trên Mac, ảnh và video lưu ở `~/Muse Tool/output`.
+
 ## Cập nhật từ xa
 
 Ứng dụng tự kiểm tra bản mới khi mở (có thể tắt trong Cài đặt → Cập nhật ứng dụng) và có nút "Kiểm tra cập nhật". Khi có bản mới, bấm "Cập nhật ngay": ứng dụng tải, kiểm tra chữ ký, cài và tự khởi động lại. Nút này từ chối chạy khi đang có việc để không làm gián đoạn.
