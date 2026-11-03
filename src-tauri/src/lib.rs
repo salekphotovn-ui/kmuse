@@ -136,14 +136,14 @@ fn mouse_click_on(ws_url: &str, center_js: &str) -> Result<(), String> {
 fn read_usage(ws_url: &str) -> Result<serde_json::Value, String> {
     // Muse ignores script-made clicks on these menus, so use real mouse events at the element's position.
     // The button can appear late, and other layouts label it differently, so wait for it and accept looser matches.
-    let dock_center = r#"(() => { const vis=e=>{const r=e.getBoundingClientRect(); return r.width>0&&r.height>0}; const all=[...document.querySelectorAll('button,[role=button]')].filter(vis); const b=document.querySelector('[data-testid=hatch-dock-more]')||all.find(e=>e.getAttribute('aria-label')==='Settings')||all.find(e=>/settings|cài đặt/i.test((e.getAttribute('aria-label')||'')+' '+(e.getAttribute('title')||'')+' '+(e.getAttribute('data-testid')||''))); if(!b) return null; const r=b.getBoundingClientRect(); return {x:r.x+r.width/2, y:r.y+r.height/2} })()"#;
+    let dock_center = r#"(() => { const vis=e=>{const r=e.getBoundingClientRect(); return r.width>0&&r.height>0}; const all=[...document.querySelectorAll('button,[role=button]')].filter(vis); const b=document.querySelector('[data-testid=hatch-dock-more]')||all.find(e=>e.getAttribute('aria-label')==='Settings')||all.find(e=>/settings|cài đặt/i.test((e.getAttribute('aria-label')||'')+' '+(e.getAttribute('title')||'')+' '+(e.getAttribute('data-testid')||'')+' '+(e.innerText||'').slice(0,20))); if(!b) return null; const r=b.getBoundingClientRect(); return {x:r.x+r.width/2, y:r.y+r.height/2} })()"#;
     for _ in 0..8 {
         if eval_value(ws_url, dock_center).map(|v| v.get("x").is_some()).unwrap_or(false) { break; }
         thread::sleep(Duration::from_secs(1));
     }
     mouse_click_on(ws_url, dock_center)?;
     thread::sleep(Duration::from_millis(600));
-    let item_center = r#"(() => { const item=[...document.querySelectorAll('button,[role=menuitem],[role=button],a,div,span')].filter(e=>e.children.length===0 && (e.innerText||'').trim()==='Settings').pop(); if(!item) return null; const r=item.getBoundingClientRect(); return {x:r.x+r.width/2, y:r.y+r.height/2} })()"#;
+    let item_center = r#"(() => { const item=[...document.querySelectorAll('button,[role=menuitem],[role=button],a,div,span')].filter(e=>e.children.length===0 && /^(Settings|Cài đặt)$/.test((e.innerText||'').trim())).pop(); if(!item) return null; const r=item.getBoundingClientRect(); return {x:r.x+r.width/2, y:r.y+r.height/2} })()"#;
     mouse_click_on(ws_url, item_center)?;
     thread::sleep(Duration::from_secs(4));
     let read = r#"(() => { const text=(document.body.innerText||'').replace(/\r/g,''); const loggedIn=!/Log in or create an account/i.test(text); const lines=text.split('\n').map(s=>s.trim()).filter(Boolean); const usage=lines.findIndex(x=>x==='Usage'); let block=usage>=0?lines.slice(usage,usage+12):[]; const plan=block.find(x=>/% used/i.test(x)&&! /tokens left/i.test(x))||null; const extra=block.find(x=>/tokens left/i.test(x))||null; const tier=block.find(x=>/plan$/i.test(x))||null; const reset=block.find(x=>/reset/i.test(x))||null; return {loggedIn,tier,plan,reset,extra,block}; })()"#;

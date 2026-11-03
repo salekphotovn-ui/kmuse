@@ -108,7 +108,7 @@ pub fn launch(app: &AppHandle, id: &str, port: u16, mode: Mode) -> Result<(), St
     command
         .arg(format!("--user-data-dir={}", profile.display()))
         .arg(format!("--remote-debugging-port={port}"))
-        .args(["--no-first-run", "--no-default-browser-check", "--disable-sync", "--remote-allow-origins=http://localhost", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding", "--disable-background-timer-throttling"]);
+        .args(["--no-first-run", "--no-default-browser-check", "--disable-sync", "--lang=en-US", "--accept-lang=en-US,en","--remote-allow-origins=http://localhost", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding", "--disable-background-timer-throttling"]);
     match mode {
         Mode::Visible => { command.arg("--new-window"); }
         Mode::Minimized => { command.args(["--new-window", "--start-minimized"]); }
