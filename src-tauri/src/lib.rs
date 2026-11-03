@@ -121,7 +121,10 @@ fn cdp_eval(ws_url: &str, expression: &str, id: u64) -> Result<serde_json::Value
 fn mouse_click_on(ws_url: &str, center_js: &str) -> Result<(), String> {
     let center = eval_value(ws_url, center_js)?;
     let (Some(x), Some(y)) = (center.get("x").and_then(|v| v.as_f64()), center.get("y").and_then(|v| v.as_f64())) else {
-        return Err("Không tìm thấy nút Settings trên trang Muse.".into());
+        // Say what the page does show, so a layout that differs between machines (e.g. Chrome on macOS) can be told apart from a missing login.
+        let seen = eval_value(ws_url, "(() => JSON.stringify({w: innerWidth, h: innerHeight, labels: [...document.querySelectorAll('button,[role=button]')].map(e => e.getAttribute('aria-label') || e.getAttribute('data-testid') || (e.innerText||'').trim().slice(0,20)).filter(Boolean).slice(0,25)}))()")
+            .ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default();
+        return Err(format!("Không tìm thấy nút Settings trên trang Muse. Trang đang có: {seen}"));
     };
     for (kind, id) in [("mouseMoved", 11), ("mousePressed", 12), ("mouseReleased", 13)] {
         cdp_call(ws_url, "Input.dispatchMouseEvent", serde_json::json!({ "type": kind, "x": x, "y": y, "button": "left", "buttons": if kind == "mousePressed" { 1 } else { 0 }, "clickCount": 1 }), id)?;
@@ -132,7 +135,12 @@ fn mouse_click_on(ws_url: &str, center_js: &str) -> Result<(), String> {
 /// Opens Muse's Settings dialog in the given tab, reads the Usage block, and closes the dialog again so the chat stays usable.
 fn read_usage(ws_url: &str) -> Result<serde_json::Value, String> {
     // Muse ignores script-made clicks on these menus, so use real mouse events at the element's position.
-    let dock_center = r#"(() => { const b=document.querySelector('[data-testid=hatch-dock-more]')||[...document.querySelectorAll('button,[role=button]')].find(e=>e.getAttribute('aria-label')==='Settings'); if(!b) return null; const r=b.getBoundingClientRect(); return {x:r.x+r.width/2, y:r.y+r.height/2} })()"#;
+    // The button can appear late, and other layouts label it differently, so wait for it and accept looser matches.
+    let dock_center = r#"(() => { const vis=e=>{const r=e.getBoundingClientRect(); return r.width>0&&r.height>0}; const all=[...document.querySelectorAll('button,[role=button]')].filter(vis); const b=document.querySelector('[data-testid=hatch-dock-more]')||all.find(e=>e.getAttribute('aria-label')==='Settings')||all.find(e=>/settings|cài đặt/i.test((e.getAttribute('aria-label')||'')+' '+(e.getAttribute('title')||'')+' '+(e.getAttribute('data-testid')||''))); if(!b) return null; const r=b.getBoundingClientRect(); return {x:r.x+r.width/2, y:r.y+r.height/2} })()"#;
+    for _ in 0..8 {
+        if eval_value(ws_url, dock_center).map(|v| v.get("x").is_some()).unwrap_or(false) { break; }
+        thread::sleep(Duration::from_secs(1));
+    }
     mouse_click_on(ws_url, dock_center)?;
     thread::sleep(Duration::from_millis(600));
     let item_center = r#"(() => { const item=[...document.querySelectorAll('button,[role=menuitem],[role=button],a,div,span')].filter(e=>e.children.length===0 && (e.innerText||'').trim()==='Settings').pop(); if(!item) return null; const r=item.getBoundingClientRect(); return {x:r.x+r.width/2, y:r.y+r.height/2} })()"#;
