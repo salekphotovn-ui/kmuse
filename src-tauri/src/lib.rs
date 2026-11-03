@@ -6,6 +6,7 @@ mod api;
 mod browser;
 mod cleanup;
 mod queue;
+mod stats;
 mod updater;
 use tungstenite::{connect, Message};
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -98,8 +99,34 @@ fn open_account(app: tauri::AppHandle, id: String) -> Result<(), String> {
     browser::launch(&app, &id, port, browser::Mode::Visible)
 }
 
+
+/// Longest a single command to Chrome may take to answer before the page counts as frozen.
+const CDP_REPLY_TIMEOUT: Duration = Duration::from_secs(90);
+
+/// Opens the debugging socket with read/write time limits, so a frozen tab fails instead of blocking a job forever.
+fn connect_ws(ws_url: &str) -> Result<tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<std::net::TcpStream>>, String> {
+    let (socket, _) = connect(ws_url).map_err(|e| format!("Không kết nối được Chrome: {e}"))?;
+    if let tungstenite::stream::MaybeTlsStream::Plain(stream) = socket.get_ref() {
+        let _ = stream.set_read_timeout(Some(CDP_REPLY_TIMEOUT));
+        let _ = stream.set_write_timeout(Some(CDP_REPLY_TIMEOUT));
+    }
+    Ok(socket)
+}
+
+/// Turns a socket error into text; a missing answer is reported as a timeout so the queue stops the job instead of retrying it.
+fn socket_error(e: tungstenite::Error) -> String {
+    match e {
+        tungstenite::Error::Io(ref io) if matches!(io.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) =>
+            format!("{TIMED_OUT}: Chrome không trả lời sau {} giây (trang Muse có thể bị đơ).", CDP_REPLY_TIMEOUT.as_secs()),
+        other => other.to_string(),
+    }
+}
+
+/// Error prefix for a job that ran out of time; the queue stops such a job at once so the caller can resend it.
+pub(crate) const TIMED_OUT: &str = "Quá thời gian";
+
 fn cdp_eval(ws_url: &str, expression: &str, id: u64) -> Result<serde_json::Value, String> {
-    let (mut socket, _) = connect(ws_url).map_err(|e| format!("Không kết nối được Chrome: {e}"))?;
+    let mut socket = connect_ws(ws_url)?;
     let request = serde_json::json!({
         "id": id,
         "method": "Runtime.evaluate",
@@ -107,7 +134,7 @@ fn cdp_eval(ws_url: &str, expression: &str, id: u64) -> Result<serde_json::Value
     });
     socket.send(Message::Text(request.to_string().into())).map_err(|e| e.to_string())?;
     loop {
-        let message = socket.read().map_err(|e| e.to_string())?;
+        let message = socket.read().map_err(socket_error)?;
         if let Message::Text(text) = message {
             let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
             if value.get("id").and_then(|v| v.as_u64()) == Some(id) {
@@ -265,11 +292,11 @@ fn check_account(app: tauri::AppHandle, id: String) -> Result<Account, String> {
 }
 
 fn cdp_call(ws_url: &str, method: &str, params: serde_json::Value, id: u64) -> Result<serde_json::Value, String> {
-    let (mut socket, _) = connect(ws_url).map_err(|e| format!("Không kết nối được Chrome: {e}"))?;
+    let mut socket = connect_ws(ws_url)?;
     let request = serde_json::json!({ "id": id, "method": method, "params": params });
     socket.send(Message::Text(request.to_string().into())).map_err(|e| e.to_string())?;
     loop {
-        let message = socket.read().map_err(|e| e.to_string())?;
+        let message = socket.read().map_err(socket_error)?;
         if let Message::Text(text) = message {
             let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
             if value.get("id").and_then(|v| v.as_u64()) == Some(id) { return Ok(value); }
@@ -313,11 +340,11 @@ pub(crate) struct MediaResult { pub(crate) path: String, pub(crate) thumb: Optio
 
 /// Puts a local image into Muse's hidden file input. Node ids only live as long as one connection, so every step shares one socket.
 fn attach_file(ws_url: &str, path: &str) -> Result<(), String> {
-    let (mut socket, _) = connect(ws_url).map_err(|e| format!("Không kết nối được Chrome: {e}"))?;
+    let mut socket = connect_ws(ws_url)?;
     let mut call = |id: u64, method: &str, params: serde_json::Value| -> Result<serde_json::Value, String> {
         socket.send(Message::Text(serde_json::json!({ "id": id, "method": method, "params": params }).to_string().into())).map_err(|e| e.to_string())?;
         loop {
-            if let Message::Text(text) = socket.read().map_err(|e| e.to_string())? {
+            if let Message::Text(text) = socket.read().map_err(socket_error)? {
                 let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
                 if value.get("id").and_then(|v| v.as_u64()) == Some(id) {
                     if let Some(err) = value.get("error") { return Err(format!("Chrome từ chối ({method}): {err}")); }
@@ -360,12 +387,16 @@ fn save_reference(name: String, data: String) -> Result<String, String> {
 }
 
 /// Error prefix for an account that has used up its Muse credits; the queue keys off it.
+/// Longest a single image / video may take, from sending the prompt to getting the file.
+pub(crate) const IMAGE_LIMIT_SECS: u64 = 6 * 60;
+pub(crate) const VIDEO_LIMIT_SECS: u64 = 12 * 60;
+
 pub(crate) const OUT_OF_USAGE: &str = "Hết lượt";
 
 pub(crate) fn run_media_job(port: u16, kind: &str, prompt: &str, ratio: &str, reference: Option<&str>) -> Result<MediaResult, String> {
     let (sel, prefix, timeout) = match kind {
-        "video" => ("[aria-label^=\"Open animated video\"]", "Video", 600u64),
-        _ => ("[aria-label^=\"Open generated image\"]", "Ảnh", 300u64),
+        "video" => ("[aria-label^=\"Open animated video\"]", "Video", VIDEO_LIMIT_SECS),
+        _ => ("[aria-label^=\"Open generated image\"]", "Ảnh", IMAGE_LIMIT_SECS),
     };
     let client = reqwest::blocking::Client::builder().timeout(Duration::from_secs(3)).build().map_err(|e| e.to_string())?;
     let tabs: Vec<serde_json::Value> = client.get(format!("http://127.0.0.1:{port}/json"))
@@ -434,7 +465,7 @@ pub(crate) fn run_media_job(port: u16, kind: &str, prompt: &str, ratio: &str, re
         if waited >= 15 && waited % 5 == 0 && eval_value(ws, "/\\bOut of usage\\b/i.test(document.body.innerText)")?.as_bool() == Some(true) {
             return Err(format!("{OUT_OF_USAGE}: tài khoản này đã hết lượt tạo trên Muse (Out of usage)."));
         }
-        if waited > timeout { return Err("Quá thời gian chờ Muse tạo kết quả.".into()); }
+        if waited > timeout { return Err(format!("{TIMED_OUT}: Muse chưa tạo xong sau {} phút, đã dừng tác vụ. Hãy gửi lại prompt.", timeout / 60)); }
     }
     thread::sleep(Duration::from_millis(800));
     let data = eval_value(ws, &format!("{EXTRACT_JS}({})", serde_json::json!(kind)))?;
@@ -569,11 +600,12 @@ pub fn run() {
             browser::init(app.handle());
             { let app = app.handle().clone(); thread::spawn(move || browser::close_orphans(&app)); }
             api::init(app.handle().clone(), runtime.clone());
+            cleanup::start_auto_clean(app.handle().clone(), runtime.clone());
             queue::start(app.handle().clone(), runtime);
             watch_accounts(app.handle().clone());
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![list_accounts, add_account, open_account, check_account, refresh_all_usage, usage_progress, remove_account, open_output_folder, open_media_file, save_reference, queue::enqueue_jobs, queue::list_jobs, queue::get_thumb, queue::cancel_job, queue::retry_job, queue::delete_job, queue::set_paused, browser::get_run_settings, browser::set_run_settings, api::get_api_settings, api::set_api_settings, api::get_api_guide, updater::get_app_version, cleanup::get_storage_info, cleanup::clear_history, cleanup::clear_cache, updater::check_update, updater::install_update])
+        .invoke_handler(tauri::generate_handler![list_accounts, add_account, open_account, check_account, refresh_all_usage, usage_progress, remove_account, open_output_folder, open_media_file, save_reference, queue::enqueue_jobs, queue::list_jobs, queue::get_thumb, queue::cancel_job, queue::cancel_waiting, stats::get_runtime_stats, queue::retry_job, queue::delete_job, queue::set_paused, browser::get_run_settings, browser::set_run_settings, api::get_api_settings, api::set_api_settings, api::get_api_guide, updater::get_app_version, cleanup::get_storage_info, cleanup::clear_history, cleanup::clear_cache, cleanup::get_auto_clean, cleanup::set_auto_clean, updater::check_update, updater::install_update])
         .build(tauri::generate_context!())
         .expect("error while building Muse Tool")
         .run(|app, event| {

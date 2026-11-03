@@ -713,7 +713,7 @@ if (tauriInvoke) {
 // ---- clean-up: browser cache and generation history ----
 const cleanInfo = document.querySelector("#clean-info");
 const confirmDialog = document.querySelector("#confirm-dialog");
-const cleanButtons = ["#clean-cache", "#clean-history", "#clean-all"].map((id) => document.querySelector(id));
+const cleanButtons = ["#clean-cache", "#clean-history", "#clean-all", "#clean-waiting"].map((id) => document.querySelector(id));
 
 function formatBytes(bytes) {
   if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
@@ -795,3 +795,60 @@ document.querySelector("#clean-all").addEventListener("click", () => runClean(
 
 document.querySelector('[data-tab="settings"]').addEventListener("click", () => { loadStorageInfo(); });
 loadStorageInfo();
+
+document.querySelector("#clean-waiting").addEventListener("click", () => runClean(
+  "cancel_waiting", {}, "Hủy các việc đang chờ?",
+  "Mọi việc đang xếp hàng chờ chạy sẽ bị xóa khỏi hàng đợi. Việc đang chạy không bị dừng, nó sẽ tự xong hoặc báo lỗi.",
+  "Hủy việc chờ",
+  (n) => showToast(`Đã hủy ${n} việc đang chờ.`),
+));
+
+// Số luồng đang chạy và RAM, cập nhật mỗi 3 giây.
+async function refreshRuntimeStats() {
+  if (!tauriInvoke || document.hidden) return;
+  try {
+    const s = await tauriInvoke("get_runtime_stats");
+    document.querySelector("#stat-running").textContent = s.running;
+    document.querySelector("#stat-waiting").textContent = s.waiting ? `· ${s.waiting} chờ` : "";
+    document.querySelector("#stat-ram-value").textContent = formatBytes(s.ram_bytes);
+    document.querySelector("#stat-ram").classList.toggle("is-high", s.ram_bytes > 8 * 1024 ** 3);
+    document.querySelector("#stat-threads").hidden = false;
+    document.querySelector("#stat-ram").hidden = false;
+  } catch {}
+}
+refreshRuntimeStats();
+setInterval(refreshRuntimeStats, 3000);
+
+// ---- tự động dọn dẹp ----
+const autoClean = document.querySelector("#auto-clean");
+const autoCleanFiles = document.querySelector("#auto-clean-files");
+const autoCleanInfo = document.querySelector("#auto-clean-info");
+const autoCleanBase = autoCleanInfo.textContent;
+
+function renderAutoClean(state) {
+  autoClean.checked = state.enabled;
+  autoCleanFiles.checked = state.delete_files;
+  const when = (ms) => new Date(ms).toLocaleString("vi-VN");
+  autoCleanInfo.textContent = state.enabled
+    ? `Lần dọn tới: ${when(state.next_ms)} (nếu lúc đó có việc chạy sẽ dời lại cho tới khi rảnh).` + (state.last_summary ? ` Lần trước: ${state.last_summary}.` : "")
+    : autoCleanBase;
+}
+
+async function saveAutoClean() {
+  try {
+    renderAutoClean(await tauriInvoke("set_auto_clean", { enabled: autoClean.checked, deleteFiles: autoCleanFiles.checked }));
+    showToast("Đã lưu cài đặt tự động dọn dẹp.");
+  } catch (error) {
+    showToast(String(error));
+  }
+}
+
+if (tauriInvoke) {
+  autoClean.addEventListener("change", saveAutoClean);
+  autoCleanFiles.addEventListener("change", async () => {
+    if (autoCleanFiles.checked && !(await askConfirm("Xóa cả file khi tự dọn?", "Mỗi 2 ngày, toàn bộ ảnh và video đã tạo trong thư mục output sẽ bị xóa vĩnh viễn. Hãy chắc là anh đã lưu kết quả đi nơi khác trước.", "Bật"))) { autoCleanFiles.checked = false; return; }
+    saveAutoClean();
+  });
+  tauriInvoke("get_auto_clean").then(renderAutoClean).catch(() => {});
+  document.querySelector('[data-tab="settings"]').addEventListener("click", () => tauriInvoke("get_auto_clean").then(renderAutoClean).catch(() => {}));
+}

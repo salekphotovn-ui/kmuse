@@ -33,7 +33,7 @@ svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-widt
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 .app-shell { min-height: 100vh; background: var(--bg); }
-.topbar { min-height: 82px; display: grid; grid-template-columns: 210px minmax(520px,1fr) 210px; align-items: center; gap: 18px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--header); }
+.topbar { min-height: 82px; display: grid; grid-template-columns: 210px minmax(520px,1fr) minmax(210px,auto); align-items: center; gap: 18px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--header); }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-logo { width: 42px; height: 42px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #8b7cff, #526eff); box-shadow: 0 8px 24px rgba(105,90,245,.3); }
 .brand-logo svg { width: 20px; height: 20px; }
@@ -50,6 +50,10 @@ svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-widt
 .app-meta { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .connection { display: inline-flex; align-items: center; gap: 7px; color: var(--green); font-size: 13px; white-space: nowrap; }
 .connection > span { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(68,214,140,.12); }
+.stat-chip { display: inline-flex; align-items: baseline; gap: 5px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: var(--surface-2); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stat-chip b { color: var(--text); font-weight: 700; }
+.stat-chip small { color: var(--muted); font-size: 12px; }
+.stat-chip.is-high b { color: #e8a33d; }
 .version { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--surface-2); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .main-content { width: 100%; max-width: 1320px; height: calc(100vh - 82px); margin: 0 auto; padding: 26px 34px 30px; overflow: hidden; }

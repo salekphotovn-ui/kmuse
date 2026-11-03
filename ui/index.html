@@ -43,6 +43,8 @@
         </nav>
 
         <div class="app-meta">
+          <span class="stat-chip" id="stat-threads" title="Số luồng đang chạy / số việc đang chờ" hidden>Luồng <b id="stat-running">0</b><small id="stat-waiting"></small></span>
+          <span class="stat-chip" id="stat-ram" title="RAM ước tính của Muse Tool và các cửa sổ Chrome của tài khoản (có thể tính trùng phần dùng chung)" hidden>RAM <b id="stat-ram-value">0</b></span>
           <span class="connection"><span></span>Đã kết nối</span>
           <span class="version" id="app-version">v…</span>
         </div>
@@ -150,9 +152,20 @@
             <div class="api-row api-copy-row">
               <button class="button button-soft" id="clean-cache" type="button">Xóa cache trình duyệt</button>
               <button class="button button-soft" id="clean-history" type="button">Xóa lịch sử tạo</button>
+              <button class="button button-soft" id="clean-waiting" type="button">Hủy các việc đang chờ</button>
               <button class="button button-danger" id="clean-all" type="button">Xóa lịch sử và cả file ảnh/video</button>
             </div>
             <small class="api-hint">Cache chỉ là dữ liệu tạm của Chrome, xóa không mất đăng nhập. Xóa lịch sử chỉ làm sạch danh sách trong app, file đã tạo vẫn nằm trong thư mục output. Việc đang chờ hoặc đang chạy không bị ảnh hưởng.</small>
+            <div class="api-head">
+              <span class="setting-icon"><svg><use href="#i-database" /></svg></span>
+              <div><strong>Tự động dọn dẹp mỗi 2 ngày</strong><small id="auto-clean-info">Xóa lịch sử và cache trình duyệt, chỉ chạy khi không có việc nào đang chạy hoặc đang chờ.</small></div>
+              <label class="switch api-switch"><input type="checkbox" id="auto-clean" /><span></span></label>
+            </div>
+            <div class="api-head">
+              <span class="setting-icon"><svg><use href="#i-image" /></svg></span>
+              <div><strong>Khi tự dọn, xóa cả file ảnh/video</strong><small>Mặc định tắt. Bật thì ảnh và video đã tạo trong thư mục output cũng bị xóa vĩnh viễn mỗi lần dọn.</small></div>
+              <label class="switch api-switch"><input type="checkbox" id="auto-clean-files" /><span></span></label>
+            </div>
           </div>
           <div class="panel api-card">
             <div class="api-head">

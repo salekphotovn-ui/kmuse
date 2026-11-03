@@ -133,6 +133,7 @@ pub fn start(app: AppHandle, queue: Arc<Mutex<Runtime>>) {
         loop {
             thread::sleep(Duration::from_secs(1));
             dispatch(&app, &queue);
+            stop_overdue(&app, &queue);
             tick += 1;
             if tick % 15 == 0 {
                 let busy = busy_accounts(&queue);
@@ -150,6 +151,38 @@ pub fn start(app: AppHandle, queue: Arc<Mutex<Runtime>>) {
             }
         }
     });
+}
+
+/// Extra seconds on top of a job's time limit before the watchdog steps in, so the job's own timeout normally reports first.
+const OVERDUE_GRACE_SECS: u64 = 90;
+
+/// Stops jobs that have been running far longer than allowed (something blocked inside them) and frees their account.
+fn stop_overdue(app: &AppHandle, queue: &Arc<Mutex<Runtime>>) {
+    let now = now_ms();
+    let mut stopped: Vec<String> = Vec::new();
+    {
+        let mut rt = queue.lock().unwrap();
+        let mut changed = false;
+        let mut cooled: Vec<String> = Vec::new();
+        for job in rt.jobs.iter_mut().filter(|j| j.status == "running") {
+            let limit = if job.kind == "video" { crate::VIDEO_LIMIT_SECS } else { crate::IMAGE_LIMIT_SECS } + OVERDUE_GRACE_SECS;
+            if job.started_ms.is_some_and(|t| now.saturating_sub(t) > limit * 1000) {
+                job.status = "error".into();
+                job.attempts = MAX_ATTEMPTS;
+                job.message = Some(format!("{}: tác vụ bị kẹt quá {} phút, đã dừng. Hãy gửi lại prompt.", crate::TIMED_OUT, (limit - OVERDUE_GRACE_SECS) / 60));
+                job.finished_ms = Some(now);
+                if let Some(id) = job.account_id.take() { cooled.push(id.clone()); stopped.push(id); }
+                changed = true;
+            }
+        }
+        for id in cooled { rt.cooldown.insert(id, Instant::now() + COOLDOWN); }
+        if changed { persist(app, &rt); }
+    }
+    // A frozen window this app opened itself is closed, so the next job starts a fresh one.
+    for id in stopped {
+        let app = app.clone();
+        thread::spawn(move || { if let Ok(port) = crate::account_port(&app, &id) { browser::close_auto_opened(&id, port); } });
+    }
 }
 
 /// How often the token counts of all accounts are re-read while the app is idle.
@@ -207,6 +240,8 @@ fn finish(app: &AppHandle, queue: &Arc<Mutex<Runtime>>, job_id: u64, account_id:
     browser::touch(account_id);
     let mut rt = queue.lock().unwrap();
     let Some(index) = rt.jobs.iter().position(|j| j.id == job_id) else { return };
+    // The watchdog may already have stopped this job (or it may be running again elsewhere): a late answer must not overwrite that.
+    if rt.jobs[index].status != "running" || rt.jobs[index].account_id.as_deref() != Some(account_id) { return; }
     match result {
         Ok(media) => {
             if let (Some(thumb), Ok(path)) = (media.thumb, thumb_path(job_id)) { let _ = fs::write(path, thumb); }
@@ -220,6 +255,7 @@ fn finish(app: &AppHandle, queue: &Arc<Mutex<Runtime>>, job_id: u64, account_id:
         }
         Err(error) => {
             let exhausted = error.starts_with(crate::OUT_OF_USAGE);
+            let timed_out = error.starts_with(crate::TIMED_OUT);
             if exhausted {
                 // Not a Muse hiccup: keep this account out of rotation for a while without slowing the others down.
                 rt.cooldown.insert(account_id.to_string(), Instant::now() + EXHAUSTED_COOLDOWN);
@@ -235,6 +271,8 @@ fn finish(app: &AppHandle, queue: &Arc<Mutex<Runtime>>, job_id: u64, account_id:
             job.account_id = None;
             // A job pinned to the exhausted account has nowhere else to go.
             if exhausted && job.requested.is_some() { job.attempts = MAX_ATTEMPTS; }
+            // A job that ran out of time is stopped and reported at once, so the caller can send the prompt again.
+            if timed_out { job.attempts = MAX_ATTEMPTS; }
             if job.attempts < MAX_ATTEMPTS {
                 job.status = "waiting".into();
                 job.message = Some(format!("Thử lại ({}/{}): {error}", job.attempts, MAX_ATTEMPTS - 1));
@@ -317,6 +355,17 @@ pub fn cancel_job(app: AppHandle, queue: State<Queue>, id: u64) -> Result<(), St
     if rt.jobs.len() == before { return Err("Chỉ hủy được công việc đang chờ.".into()); }
     persist(&app, &rt);
     Ok(())
+}
+
+/// Removes every job that is still waiting. Running jobs cannot be stopped from here and stay.
+#[tauri::command]
+pub fn cancel_waiting(app: AppHandle, queue: State<Queue>) -> usize {
+    let mut rt = queue.0.lock().unwrap();
+    let before = rt.jobs.len();
+    rt.jobs.retain(|j| j.status != "waiting");
+    let removed = before - rt.jobs.len();
+    if removed > 0 { persist(&app, &rt); }
+    removed
 }
 
 #[tauri::command]
@@ -463,4 +512,10 @@ pub fn clear_finished(app: &AppHandle, rt: &Arc<Mutex<Runtime>>) -> (usize, Hash
         }
     }
     (removed, protected)
+}
+
+/// (running, waiting) job counts.
+pub fn counts(rt: &Arc<Mutex<Runtime>>) -> (usize, usize) {
+    let rt = rt.lock().unwrap();
+    (rt.jobs.iter().filter(|j| j.status == "running").count(), rt.jobs.iter().filter(|j| j.status == "waiting").count())
 }

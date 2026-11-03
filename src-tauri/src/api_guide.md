@@ -63,11 +63,29 @@ status is one of:
 - waiting   queued, no account yet
 - running   an account is generating it
 - done      finished: "file" is the local path, "file_url" downloads it (images .webp/.png, videos .mp4)
-- error     failed after retries: read "message"
+- error     the job failed and was stopped: read "message", then decide whether to resend (see below)
 
 ?wait=N holds the request open until the job is done/error or N seconds pass (max 600). Use it instead of a polling loop.
-Typical times: image 30-60 s, video 60-120 s (up to 10 minutes in bad cases). When many jobs run, expect more.
-Failed jobs are retried automatically (up to 3 attempts, on other accounts when not pinned). Do not resubmit before status is "error".
+If N passes first, the job is still waiting/running: ask again.
+
+## Time limits and errors (important)
+
+Typical times: image 30-60 s, video 60-120 s. Hard limits, counted from the moment the prompt is sent:
+- image: 6 minutes
+- video: 12 minutes
+A job that goes over its limit, or whose Muse window freezes and stops answering, is STOPPED right away: status "error", message starting
+"Quá thời gian". It is not retried by the app. YOU must resend the same prompt with POST /jobs.
+
+Other failures (for example "Delivery not confirmed") are retried by the app itself, up to 3 attempts on other accounts when the job is not
+pinned. You only see "error" after those attempts are used up. Do not resubmit a job before its status is "error".
+
+What to do on status "error":
+- message starts with "Quá thời gian"  -> resend the same prompt (it may succeed on another account).
+- message starts with "Hết lượt"        -> that account is out of tokens; resend, and pin another account or leave it unpinned.
+- message says "Bị gián đoạn"           -> the app was closed while it ran; resend.
+- anything else                          -> resend once or twice; if it keeps failing, report the message to the user.
+Limit your resends (for example 3 per prompt) so a bad prompt cannot loop forever, and always set a client-side request timeout
+(for wait=300 use about 330 s) so your own script never hangs.
 
 ## Other endpoints
 
@@ -98,11 +116,13 @@ Python:
     B = "__BASE__"
     r = requests.post(f"{B}/jobs", json={"jobs": [{"kind": "image", "prompt": p} for p in prompts]}).json()
     for jid in r["ids"]:
-        job = requests.get(f"{B}/jobs/{jid}", params={"wait": 300}).json()
+        job = requests.get(f"{B}/jobs/{jid}", params={"wait": 300}, timeout=330).json()
         if job["status"] == "done":
-            open(f"{jid}.webp", "wb").write(requests.get(job["file_url"]).content)
-        else:
-            print(jid, job["status"], job.get("message"))
+            open(f"{jid}.webp", "wb").write(requests.get(job["file_url"], timeout=60).content)
+        elif job["status"] == "error":
+            # timed out / failed: send the same prompt again (limit the number of resends)
+            requests.post(f"{B}/jobs", json={"kind": job["kind"], "prompt": job["prompt"]}, timeout=30)
+            print(jid, "resent:", job.get("message"))
 
 ## Rules and limits
 
