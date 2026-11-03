@@ -163,6 +163,13 @@ pub fn close_orphans(app: &AppHandle) {
     }
 }
 
+/// Closes every browser this app opened itself, gracefully so Chrome saves its cookies. Called when the app exits.
+pub fn close_all_auto(app: &AppHandle) {
+    let ids: Vec<String> = auto_opened().lock().unwrap().keys().cloned().collect();
+    let handles: Vec<_> = ids.into_iter().filter_map(|id| account_port(app, &id).ok()).map(|port| thread::spawn(move || close(port))).collect();
+    for h in handles { let _ = h.join(); }
+}
+
 pub fn touch(id: &str) {
     if let Some(last) = auto_opened().lock().unwrap().get_mut(id) { *last = Instant::now(); }
 }
@@ -197,7 +204,7 @@ pub fn ensure_open(app: &AppHandle, id: &str) -> Result<u16, String> {
             }
             _ => {}
         }
-        if start.elapsed().as_secs() > 60 {
+        if start.elapsed().as_secs() > 90 {
             close_auto_opened(id, port);
             return Err("Mở cửa sổ Muse quá lâu, đã hủy.".into());
         }

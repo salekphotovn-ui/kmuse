@@ -184,7 +184,8 @@ pub(crate) fn start_usage_refresh(app: &tauri::AppHandle, queue: &std::sync::Arc
         Err(e) => { USAGE_PROGRESS.lock().unwrap().0 = false; return Err(e); }
     };
     let busy = queue::busy_accounts(&queue);
-    let targets: Vec<Account> = accounts.into_iter().filter(|a| browser::is_usable(&a.status) && !busy.contains(&a.id)).collect();
+    // Accounts marked "not logged in" are included too: if that verdict was a false alarm (for example saved while Windows was shutting down), this puts them right.
+    let targets: Vec<Account> = accounts.into_iter().filter(|a| (browser::is_usable(&a.status) || a.status == "Chưa đăng nhập") && !busy.contains(&a.id)).collect();
     USAGE_PROGRESS.lock().unwrap().2 = targets.len();
     if targets.is_empty() { USAGE_PROGRESS.lock().unwrap().0 = false; return Ok(()); }
     thread::spawn(move || {
@@ -195,6 +196,11 @@ pub(crate) fn start_usage_refresh(app: &tauri::AppHandle, queue: &std::sync::Arc
                 thread::sleep(Duration::from_secs(2 * i as u64));
                 // A job may have claimed this account while it waited its turn; real work comes first.
                 if queue::busy_accounts(&queue).contains(&account.id) {
+                    USAGE_PROGRESS.lock().unwrap().1 += 1;
+                    return;
+                }
+                // A marked-logged-out account whose window is already open is probably being logged in by the user right now: leave it alone.
+                if account.status == "Chưa đăng nhập" && account_port(&app, &account.id).is_ok_and(browser::is_up) {
                     USAGE_PROGRESS.lock().unwrap().1 += 1;
                     return;
                 }
@@ -485,8 +491,13 @@ fn probe_status(port: u16) -> Option<&'static str> {
         return Some("Chưa vào trang Muse");
     };
     let ws = tab.get("webSocketDebuggerUrl").and_then(|v| v.as_str())?;
-    let value = eval_value(ws, "!!document.querySelector('textarea[aria-label=Message]')").ok()?;
-    Some(if value == true { "Đã kết nối" } else { "Chưa đăng nhập" })
+    // Missing chat box alone proves nothing (page still loading, window closing at shutdown): only the login form counts as "logged out".
+    let value = eval_value(ws, "(() => document.querySelector('textarea[aria-label=Message]') ? 'chat' : (/Log in or create an account/i.test(document.body.innerText) ? 'login' : 'loading'))()").ok()?;
+    Some(match value.as_str() {
+        Some("chat") => "Đã kết nối",
+        Some("login") => "Chưa đăng nhập",
+        _ => "Đang tải trang Muse",
+    })
 }
 
 static ACCOUNTS_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
@@ -503,11 +514,23 @@ pub(crate) fn mark_status(app: &tauri::AppHandle, id: &str, status: &str) {
 
 /// Keeps every opened account's status current, so logging in or closing a window shows up without pressing "Kiểm tra".
 fn watch_accounts(app: tauri::AppHandle) {
-    thread::spawn(move || loop {
+    thread::spawn(move || {
+    // Consecutive "login form shown" readings per account: a single one can be a page mid-navigation or a window closing.
+    let mut logged_out_seen: std::collections::HashMap<String, u8> = std::collections::HashMap::new();
+    loop {
         thread::sleep(Duration::from_secs(5));
         let Ok(accounts) = load_accounts(&app) else { continue };
         for account in accounts.iter().filter(|a| a.port.is_some()) {
             let Some(mut status) = probe_status(account.port.unwrap()) else { continue };
+            // Pages still loading or not on Muse yet say nothing about the login: keep the last known status.
+            if status == "Đang tải trang Muse" || status == "Chưa vào trang Muse" { logged_out_seen.remove(&account.id); continue; }
+            if status == "Chưa đăng nhập" {
+                let seen = logged_out_seen.entry(account.id.clone()).or_insert(0);
+                *seen += 1;
+                if *seen < 3 && account.status != "Chưa đăng nhập" { continue; }
+            } else {
+                logged_out_seen.remove(&account.id);
+            }
             // A closed window is not a logged-out account: it opens on demand when a job needs it.
             if status == "Chưa mở cửa sổ Muse" {
                 if browser::settings().auto_open && browser::is_ready(&account.status) { status = browser::READY_CLOSED; }
@@ -524,6 +547,7 @@ fn watch_accounts(app: tauri::AppHandle) {
                 }
             }
         }
+    }
     });
 }
 
@@ -542,6 +566,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![list_accounts, add_account, open_account, check_account, refresh_all_usage, usage_progress, remove_account, open_output_folder, open_media_file, save_reference, queue::enqueue_jobs, queue::list_jobs, queue::get_thumb, queue::cancel_job, queue::retry_job, queue::delete_job, queue::set_paused, browser::get_run_settings, browser::set_run_settings, api::get_api_settings, api::set_api_settings, api::get_api_guide, updater::get_app_version, cleanup::get_storage_info, cleanup::clear_history, cleanup::clear_cache, updater::check_update, updater::install_update])
-        .run(tauri::generate_context!())
-        .expect("error while running Muse Tool");
+        .build(tauri::generate_context!())
+        .expect("error while building Muse Tool")
+        .run(|app, event| {
+            // Closing the app (or an update restarting it) should not leave browsers this app opened to be killed mid-write.
+            if let tauri::RunEvent::Exit = event { browser::close_all_auto(app); }
+        });
 }
